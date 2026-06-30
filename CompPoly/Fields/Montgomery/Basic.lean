@@ -20,11 +20,10 @@ congruence `negInv * p ≡ R - 1 [MOD R]` — and that `0 < R`, so nothing here 
 particular word size.
 
 The concrete word-level bridges live in sibling modules that instantiate `R` and call into
-this core: `CompPoly.Fields.Montgomery.Native32` (the `UInt32 × UInt64`, `R = 2^32`
-reduction shared by BabyBear/KoalaBear) and the BN254 fast stack's
-`CompPoly.Fields.BN254.Fast.Montgomery` (the CIOS one-limb-at-a-time reducer, `R = 2^64`).
-These lemmas are all `Prop`/spec level and erased at codegen, so sharing them carries no
-runtime cost.
+this core: `CompPoly.Fields.Montgomery.Native32` (the `UInt32 × UInt64`, `R = 2^32` reduction
+shared by BabyBear/KoalaBear) and `CompPoly.Fields.Montgomery.Native256` (the four-`UInt64`-limb
+CIOS one-limb-at-a-time reducer, `R = 2^256`, shared by BN254 and other 256-bit fields). These
+lemmas are all `Prop`/spec level and erased at codegen, so sharing them carries no runtime cost.
 -/
 
 namespace Montgomery
