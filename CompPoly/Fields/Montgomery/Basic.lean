@@ -14,14 +14,17 @@ import Mathlib.Tactic.Ring
 
 Field-agnostic number theory behind native-word Montgomery reduction, shared by every
 fast prime field. Everything here is parameterized by an abstract radix `R : Nat` (the
-Montgomery modulus, e.g. `2^32` for 32-bit-word fields) and the prime `p`; the proofs use
-only that `gcd(R, p) = 1` — supplied as the congruence `negInv * p ≡ R - 1 [MOD R]` — and
-that `0 < R`, so nothing here is tied to a particular word size.
+Montgomery modulus, e.g. `2^32` for 32-bit-word fields, `2^64` for the 64-bit-limb BN254
+reducer) and the prime `p`; the proofs use only that `gcd(R, p) = 1` — supplied as the
+congruence `negInv * p ≡ R - 1 [MOD R]` — and that `0 < R`, so nothing here is tied to a
+particular word size.
 
-The concrete word-level bridges (e.g. the `UInt32 × UInt64`, `R = 2^32` reduction) live in
-sibling modules such as `CompPoly.Fields.Montgomery.Native32`, which instantiate `R` and
-call into this core. These lemmas are all `Prop`/spec level and erased at codegen, so
-sharing them carries no runtime cost.
+The concrete word-level bridges live in sibling modules that instantiate `R` and call into
+this core: `CompPoly.Fields.Montgomery.Native32` (the `UInt32 × UInt64`, `R = 2^32`
+reduction shared by BabyBear/KoalaBear) and the BN254 fast stack's
+`CompPoly.Fields.BN254.Fast.Montgomery` (the CIOS one-limb-at-a-time reducer, `R = 2^64`).
+These lemmas are all `Prop`/spec level and erased at codegen, so sharing them carries no
+runtime cost.
 -/
 
 namespace Montgomery
