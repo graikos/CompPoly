@@ -65,6 +65,14 @@ import CompPoly.Data.Vector.Basic
 import CompPoly.Fields.BLS12_377
 import CompPoly.Fields.BLS12_381
 import CompPoly.Fields.BN254
+import CompPoly.Fields.BN254.Basic
+import CompPoly.Fields.BN254.Fast
+import CompPoly.Fields.BN254.Fast.Convert
+import CompPoly.Fields.BN254.Fast.Limb
+import CompPoly.Fields.BN254.Fast.Montgomery
+import CompPoly.Fields.BN254.Fast.Prelude
+import CompPoly.Fields.BN254.Fast.UInt128L
+import CompPoly.Fields.BN254.Fast.UInt256L
 import CompPoly.Fields.BabyBear
 import CompPoly.Fields.BabyBear.Basic
 import CompPoly.Fields.BabyBear.Fast
