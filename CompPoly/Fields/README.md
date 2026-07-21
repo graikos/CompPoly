@@ -12,7 +12,10 @@ This directory contains formally verified field infrastructure used in zero-know
 | **BLS12_377.lean** | Scalar field of BLS12-377 (253-bit, 2-adicity 47) — Zexe. |
 | **BLS12_381.lean** | Scalar field of BLS12-381 (253-bit, 2-adicity 47). |
 | **BN254.lean** | Scalar field of BN254 curve. |
-| **Goldilocks.lean** | \(2^{64} - 2^{32} + 1\) — Plonky2/3. |
+| **Goldilocks.lean** | Facade for Goldilocks modules, re-exporting the canonical field and fast native-word implementation. |
+| **Goldilocks/Basic.lean** | \(2^{64} - 2^{32} + 1\) — Plonky2/3. |
+| **Goldilocks/Fast.lean** | Native `UInt64` operations for Goldilocks (reduction via `2^64 ≡ 2^32 - 1`), with operation equivalence statements against `Goldilocks.Field`. |
+| **Goldilocks/FastExt.lean** | Opt-in extern C backends for fast Goldilocks multiplication and inversion, proven equal to the verified operations. |
 | **KoalaBear.lean** | Facade for KoalaBear modules, re-exporting the canonical field and fast native-word implementation. |
 | **KoalaBear/Basic.lean** | \(2^{31} - 2^{24} + 1\) — lean Ethereum spec. |
 | **KoalaBear/Fast.lean** | Native `UInt32` Montgomery-residue operations for KoalaBear, with conversion and operation equivalence statements against `KoalaBear.Field`. |

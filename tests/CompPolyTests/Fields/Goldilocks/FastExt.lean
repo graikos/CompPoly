@@ -1,26 +1,27 @@
 /-
 Copyright (c) 2026 CompPoly Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Varun Thakore
+Authors: Varun Thakore, Georgios Raikos
 -/
 
-import CompPoly.Fields.Goldilocks.Fast
 import CompPoly.Fields.Goldilocks.FastExt
 
 /-!
 # Extern-Backed Fast Goldilocks Tests
 
-Runtime regression checks for `Goldilocks.Fast.Ext`. These tests compare the
-extern-backed operations against the verified `Goldilocks.Fast` implementation.
+Runtime regression checks for `Goldilocks.Fast.Ext`: the extern-backed operations are
+compared against the verified implementation on boundary values and a deterministic
+pseudorandom sweep. The Lean models are already proved equal to the verified operations;
+what these checks exercise is the trusted C in `native/comppoly_goldilocks.c`, which
+proofs cannot see. They live in an executable because the module interpreter cannot call
+project-local externs.
 
-The checks live in an executable rather than `#guard`s because Lean's module
-interpreter cannot call project-local C externs during elaboration.
-
-Run this file with:
-`lake exe CompPolyGoldilocksFastExtTests`
+Run this file with: `lake exe CompPolyGoldilocksFastExtTests`
 -/
 
 namespace CompPolyTests.Fields.Goldilocks.FastExt
+
+open Goldilocks.Fast
 
 private def check (name : String) (ok : Bool) : IO Bool := do
   if ok then
@@ -29,43 +30,70 @@ private def check (name : String) (ok : Bool) : IO Bool := do
     IO.eprintln s!"failed: {name}"
     return false
 
-private def a : Goldilocks.Fast.Field := 987654321
+/-- One step of Knuth's MMIX 64-bit LCG. -/
+private def lcg (s : UInt64) : UInt64 :=
+  s * 6364136223846793005 + 1442695040888963407
 
-private def b : Goldilocks.Fast.Field := 54321
+/-- Boundary words: small values, limb edges, values around `p`, and the word maximum. -/
+private def boundaryWords : List UInt64 :=
+  [0, 1, 2, 73,
+   0xFFFFFFFE, 0xFFFFFFFF, 0x100000000, 0x100000001,
+   0xFFFFFFFF00000000, modulus - 1, modulus, modulus + 1,
+   0xFFFFFFFFFFFFFFFF]
 
-private def c : Goldilocks.Fast.Field := 73
+/-- 512 deterministic pseudorandom words. -/
+private def randomWords : List UInt64 := Id.run do
+  let mut s : UInt64 := 0x243F6A8885A308D3
+  let mut out : List UInt64 := []
+  for _ in [0:512] do
+    s := lcg s
+    out := s :: out
+  return out
 
-private def nearTop : Goldilocks.Fast.Field :=
-  Goldilocks.Fast.ofNat (Goldilocks.Basic.fieldSize - 1)
+private def words : List UInt64 := boundaryWords ++ randomWords
 
-private def maxUInt64 : Goldilocks.Fast.Field :=
-  Goldilocks.Fast.ofUInt64 (UInt64.ofNat (UInt64.size - 1))
+private def elems : List Field := words.map .ofUInt64
+
+/-- The raw extern words agree with the verified words on all pairs. -/
+private def mulHiOk : Bool :=
+  words.all fun a => words.all fun b => Ext.mulHi a b == wideMulHi a b
+
+private def mulRawNativeOk : Bool :=
+  words.all fun a => words.all fun b => Ext.mulRawNative a b == mulRaw a b
+
+private def mulNativeOk : Bool :=
+  (elems.take 60).all fun x => (elems.take 60).all fun y => Ext.mulNative x y = x * y
+
+private def mulWithMulHiOk : Bool :=
+  (elems.take 60).all fun x => (elems.take 60).all fun y => Ext.mulWithMulHi x y = x * y
+
+private def squareOk : Bool :=
+  elems.all fun x =>
+    Ext.squareNative x = square x && Ext.squareWithMulHi x = square x
+      && Ext.squareNNative x 8 = squareN x 8
+
+private def invOk : Bool :=
+  elems.all fun x => Ext.invNative x = x⁻¹
+
+private def divOk : Bool :=
+  (elems.take 40).all fun x => (elems.take 40).all fun y => Ext.divNative x y = x / y
 
 private def runChecks : IO Bool := do
-  let ok1 ← check "mulWithMulHi" (Goldilocks.Fast.Ext.mulWithMulHi a b = a * b)
-  let ok2 ← check "mulNative" (Goldilocks.Fast.Ext.mulNative a b = a * b)
-  let ok3 ←
-    check "squareWithMulHi" (Goldilocks.Fast.Ext.squareWithMulHi a = Goldilocks.Fast.square a)
-  let ok4 ←
-    check "squareNative" (Goldilocks.Fast.Ext.squareNative a = Goldilocks.Fast.square a)
-  let ok5 ←
-    check "squareNNative" (Goldilocks.Fast.Ext.squareNNative a 8 = Goldilocks.Fast.squareN a 8)
-  let ok6 ← check "invNative" (Goldilocks.Fast.Ext.invNative c = c⁻¹)
-  let ok7 ← check "divNative" (Goldilocks.Fast.Ext.divNative a c = a / c)
-  let ok8 ←
-    check "mulNative near modulus"
-      (Goldilocks.Fast.Ext.mulNative nearTop nearTop = nearTop * nearTop)
-  let ok9 ←
-    check "mulNative max UInt64" (Goldilocks.Fast.Ext.mulNative maxUInt64 a = maxUInt64 * a)
-  let ok10 ←
-    check "divNative nontrivial" (Goldilocks.Fast.Ext.divNative b c = b / c)
-  return ok1 && ok2 && ok3 && ok4 && ok5 && ok6 && ok7 && ok8 && ok9 && ok10
+  let ok1 ← check "mulHi raw sweep" mulHiOk
+  let ok2 ← check "mulRawNative raw sweep" mulRawNativeOk
+  let ok3 ← check "mulNative" mulNativeOk
+  let ok4 ← check "mulWithMulHi" mulWithMulHiOk
+  let ok5 ← check "squareNative / squareWithMulHi / squareNNative" squareOk
+  let ok6 ← check "invNative" invOk
+  let ok7 ← check "divNative" divOk
+  return ok1 && ok2 && ok3 && ok4 && ok5 && ok6 && ok7
 
 end CompPolyTests.Fields.Goldilocks.FastExt
 
 /-- Run the extern-backed Goldilocks regression checks. -/
 def main : IO UInt32 := do
   if ← CompPolyTests.Fields.Goldilocks.FastExt.runChecks then
+    IO.println "all extern-backed Goldilocks checks passed"
     return 0
   else
     return 1

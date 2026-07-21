@@ -10,18 +10,16 @@ import CompPoly.Fields.PrattCertificate
 /-!
 # Goldilocks Prime Field `2^{64} - 2^{32} + 1`
 
-This module defines the canonical `ZMod` model of the Goldilocks prime field.
+The canonical `ZMod` model of the Goldilocks prime field, used in Plonky2/3.
 -/
 
 namespace Goldilocks
-namespace Basic
 
-/-- The Goldilocks prime modulus, `2^64 - 2^32 + 1`. -/
+/-- The Goldilocks field modulus, `2^64 - 2^32 + 1`. -/
 @[reducible]
-def fieldSize : Nat := 2 ^ 64 - 2 ^ 32 + 1
+def fieldSize : ℕ := 2 ^ 64 - 2 ^ 32 + 1
 
-/-- The canonical mathematical Goldilocks field, implemented as integers modulo
-`fieldSize`. -/
+/-- The Goldilocks prime field as a `ZMod`. -/
 abbrev Field := ZMod fieldSize
 
 /-- The Goldilocks modulus is prime, verified by a Pratt certificate. -/
@@ -29,17 +27,13 @@ theorem is_prime : Nat.Prime fieldSize := by
   unfold fieldSize
   pratt
 
-/-- Register primality of `fieldSize` for Mathlib instances such as `ZMod.instField`. -/
 instance : Fact (Nat.Prime fieldSize) := ⟨is_prime⟩
 
-/-- The canonical Goldilocks carrier is a field because its modulus is prime. -/
 instance : _root_.Field Field := ZMod.instField fieldSize
 
-/-- Goldilocks has characteristic different from two. -/
 instance : NonBinaryField Field where
   char_neq_2 := by
     simpa [Field, fieldSize] using
       (by decide : (2 : ZMod (2 ^ 64 - 2 ^ 32 + 1)) ≠ 0)
 
-end Basic
 end Goldilocks

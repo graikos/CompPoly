@@ -26,18 +26,19 @@ def nativeLib (name src : String) (extraCcArgs : Array String := #[]) : FetchM (
       args := #["rcs", libFile.toString, oFile.toString]
     }
 
-extern_lib liblean_goldilocks_native _pkg := nativeLib "goldilocks_native" "goldilocks_native.c"
+extern_lib libcomppoly_goldilocks _pkg := nativeLib "comppoly_goldilocks" "comppoly_goldilocks.c"
 
+/-- Linker arguments for binaries that call the extern symbols of `lib<name>.a`. -/
 def nativeLinkArgs (name : String) : Array String :=
   #["-L", nativeBuildDir.toString, s!"-l{name}"]
 
 @[default_target]
 lean_lib CompPoly where
-  moreLinkArgs := nativeLinkArgs "goldilocks_native"
+  moreLinkArgs := nativeLinkArgs "comppoly_goldilocks"
 
 lean_lib CompPolyTests where
   srcDir := "tests"
-  moreLinkArgs := nativeLinkArgs "goldilocks_native"
+  moreLinkArgs := nativeLinkArgs "comppoly_goldilocks"
 
 lean_lib CompPolyBenchLib where
   srcDir := "bench"
@@ -49,4 +50,4 @@ lean_exe CompPolyBench where
 lean_exe CompPolyGoldilocksFastExtTests where
   srcDir := "tests"
   root := `CompPolyTests.Fields.Goldilocks.FastExt
-  moreLinkArgs := nativeLinkArgs "goldilocks_native"
+  moreLinkArgs := nativeLinkArgs "comppoly_goldilocks"
