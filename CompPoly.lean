@@ -99,6 +99,7 @@ import CompPoly.Fields.Binary.Tower.Concrete.Core
 import CompPoly.Fields.Binary.Tower.Concrete.Field
 import CompPoly.Fields.Binary.Tower.Equiv
 import CompPoly.Fields.Binary.Tower.Fast
+import CompPoly.Fields.Binary.Tower.FastExt
 import CompPoly.Fields.Binary.Tower.Impl
 import CompPoly.Fields.Binary.Tower.Prelude
 import CompPoly.Fields.Binary.Tower.Support.DefiningPoly

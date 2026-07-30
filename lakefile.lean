@@ -32,17 +32,23 @@ def nativeLib (name src : String) (extraCcArgs : Array String := #[]) :
 
 extern_lib libcomppoly_mont256 _pkg := nativeLib "comppoly_mont256" "comppoly_mont256.c"
 
+extern_lib libcomppoly_bt _pkg := nativeLib "comppoly_bt" "comppoly_bt.c"
+
 /-- Linker arguments for binaries that call the extern symbols of `lib<name>.a`. -/
 def nativeLinkArgs (name : String) : Array String :=
   #["-L", nativeBuildDir.toString, s!"-l{name}"]
 
+/-- Link arguments covering every native archive of the package. -/
+def allNativeLinkArgs : Array String :=
+  nativeLinkArgs "comppoly_mont256" ++ nativeLinkArgs "comppoly_bt"
+
 @[default_target]
 lean_lib CompPoly where
-  moreLinkArgs := nativeLinkArgs "comppoly_mont256"
+  moreLinkArgs := allNativeLinkArgs
 
 lean_lib CompPolyTests where
   srcDir := "tests"
-  moreLinkArgs := nativeLinkArgs "comppoly_mont256"
+  moreLinkArgs := allNativeLinkArgs
 
 lean_lib CompPolyBenchLib where
   srcDir := "bench"
@@ -50,9 +56,14 @@ lean_lib CompPolyBenchLib where
 
 lean_exe CompPolyBench where
   srcDir := "bench"
-  moreLinkArgs := nativeLinkArgs "comppoly_mont256"
+  moreLinkArgs := allNativeLinkArgs
 
 lean_exe CompPolyMont256ExtTests where
   srcDir := "tests"
   root := `CompPolyTests.Fields.Montgomery.Native256Ext
-  moreLinkArgs := nativeLinkArgs "comppoly_mont256"
+  moreLinkArgs := allNativeLinkArgs
+
+lean_exe CompPolyBTExtTests where
+  srcDir := "tests"
+  root := `CompPolyTests.Fields.Binary.Tower.FastExtMain
+  moreLinkArgs := allNativeLinkArgs
