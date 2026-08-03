@@ -4,22 +4,13 @@
 /*
  * Native backends for the fast binary tower fields, called through the
  * @[extern] declarations in CompPoly/Fields/Binary/Tower/FastExt.lean.
- * Those declarations carry the verified Lean ladder as their bodies; proofs
- * and the kernel only ever see the Lean side, and the default field
- * operations never call this code.
+ * Proofs only see the Lean bodies of those declarations; runtime agreement
+ * with this file is checked by `lake exe CompPolyBTExtTests`.
  *
- * Unlike comppoly_mont256.c, the multiplication kernels here are NOT
- * line-by-line transcriptions: they compute the same function by a different
- * route (a GF(2^8) multiplication table memoized at load from the transcribed
- * bit-level ladder, with Karatsuba recombination above it). Runtime agreement
- * with the Lean bodies is enforced by `lake exe CompPolyBTExtTests`, which
- * proofs cannot see. The inversion kernels only produce *candidates*: Lean
- * verifies them with a multiplication and falls back to the proven descent,
- * so nothing in them is load-bearing for correctness.
- *
- * The bit-level helpers below transcribe the rungs of the verified ladder
- * (CompPoly/Fields/Binary/Tower/Fast.lean); each names the Lean definition it
- * mirrors. They run once, at table-build time.
+ * The bit-level helpers below mirror the rungs of the verified ladder in
+ * CompPoly/Fields/Binary/Tower/Fast.lean; they run once at load time to
+ * build the GF(2^8) tables, and the runtime kernels are Karatsuba over
+ * table lookups. The inverse kernels return candidates that callers verify.
  */
 
 /* `mul2`: GF(4) multiplication. */
@@ -28,7 +19,8 @@ static inline uint64_t bt_mul2(uint64_t a, uint64_t b) {
     uint64_t p0 = a0 & b0;
     uint64_t p2 = a1 & b1;
     uint64_t p1 = (a0 ^ a1) & (b0 ^ b1);
-    return ((p1 ^ p0) << 1) | (p0 ^ p2);
+    uint64_t lo = p0 ^ p2;
+    return ((p1 ^ lo ^ p2) << 1) | lo;
 }
 
 /* `mulByZ1`: multiplication by the level-1 generator. */
@@ -115,10 +107,7 @@ static inline uint64_t bt_inv8(uint64_t v) {
     return (bt_mul4(d, v1) << 4) | bt_mul4(d, next);
 }
 
-/*
- * GF(2^8) tables, filled at load from the transcription above. 64KB for the
- * multiplication table plus three 256-byte unary tables.
- */
+/* GF(2^8) tables, filled at load from the helpers above. */
 static uint8_t BT_MUL8[256][256];
 static uint8_t BT_MBZ3[256];
 static uint8_t BT_SQ8[256];
@@ -135,10 +124,8 @@ __attribute__((constructor)) static void bt_init(void) {
     }
 }
 
-/*
- * Table-based kernels. Same recombination shape as the Lean rungs of the same
- * width, with the level-3 operations replaced by table lookups.
- */
+/* Table-based kernels: the Lean rung shapes, with level-3 operations
+ * replaced by table lookups. */
 
 /* `mul16` over the tables. */
 static inline uint64_t bt_mul16t(uint64_t a, uint64_t b) {

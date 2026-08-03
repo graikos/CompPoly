@@ -35,7 +35,7 @@ The `Binary/` subtree provides characteristic-2 field infrastructure used by GHA
 - `Binary/AdditiveNTT/*` — additive-NTT domain/algorithm/correctness stack.
 - `Binary/Tower/*` — abstract/concrete binary tower-field constructions and supporting lemmas.
 - `Binary/Tower/Fast.lean` — packed machine-word tower arithmetic (Karatsuba with `O(width)` multiply-by-generator); `Field` instances at every level (one-word widths and two-limb GF(2^128)), with multiplication, squaring, and inversion proven against the concrete tower via the `toConcrete` bridge.
-- `Binary/Tower/FastExt.lean` — opt-in extern-backed tower kernels (`native/comppoly_bt.c`, a load-time GF(2^8) table base with Karatsuba recombination): `@[extern]` declarations carrying the verified ladder as their bodies, runtime-checked inverse candidates with proven fallback, and differential coverage via `lake exe CompPolyBTExtTests`.
+- `Binary/Tower/FastExt.lean` — opt-in extern kernels for the fast tower (`native/comppoly_bt.c`): verified Lean bodies behind `@[extern]`, checked inverse candidates with proven fallback, differential coverage via `lake exe CompPolyBTExtTests`.
 
 ## Primality proofs
 

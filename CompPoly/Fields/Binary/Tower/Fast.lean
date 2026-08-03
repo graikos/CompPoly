@@ -34,8 +34,9 @@ Karatsuba half-products `p0 = a₀b₀`, `p2 = a₁b₁`, `p1 = (a₀+a₁)(b₀
 `lo = p0 + p2`, `hi = p1 + lo + Z·p2`; squaring drops the cross term; inversion is the
 quadratic descent of `concrete_inv`. Inputs are assumed in range. -/
 
-/-- GF(4) multiplication (level 1). `Z 0 = 1` collapses the generic recombination
-`hi = p1 + lo + Z·p2` to `hi = p1 + p0`, saving a xor on the ladder's hottest rung. -/
+/-- GF(4) multiplication (level 1), in the shape of the recursive twin (`Z 0 = 1`
+degenerates the recombination to `hi = p1 + lo + p2`; the C compiler folds the
+redundant xors) so `mul2_eq_rec` is `rfl`. -/
 @[inline] def mul2 (a b : UInt64) : UInt64 :=
   let a0 := a &&& 1
   let a1 := a >>> 1
@@ -44,7 +45,8 @@ quadratic descent of `concrete_inv`. Inputs are assumed in range. -/
   let p0 := a0 &&& b0
   let p2 := a1 &&& b1
   let p1 := (a0 ^^^ a1) &&& (b0 ^^^ b1)
-  ((p1 ^^^ p0) <<< 1) ||| (p0 ^^^ p2)
+  let lo := p0 ^^^ p2
+  ((p1 ^^^ lo ^^^ p2) <<< 1) ||| lo
 
 /-- Multiplication by the level-1 generator `Z 1`. -/
 @[inline] def mulByZ1 (v : UInt64) : UInt64 :=
@@ -266,8 +268,10 @@ private theorem join_lt (s : ℕ) {hi lo sh : UInt64} (hsh : sh.toNat = s) (hs :
 /-! ### Proof-side recursive twins
 
 The runtime ladder is unrolled for code generation; proofs run over structurally
-recursive twins, connected to each rung by `rfl` bridges (`mul8_eq_rec`, ...) and
-meaningful for `k ≤ 6` (one word). -/
+recursive twins, meaningful for `k ≤ 6` (one word). The bridges (`mul8_eq_rec`, ...)
+are `rfl` up to nibble width; wider rungs unfold one `_succ` step and fold the
+sub-rungs back, because a wide `rfl` bridge makes simp re-check the whole unfolded
+tree definitionally at every later fold. -/
 
 /-- Recursive twin of the `mulByZk` ladder. -/
 def mulByZRec : ℕ → UInt64 → UInt64
@@ -470,138 +474,112 @@ theorem mulByZ3_eq_rec (v : UInt64) : mulByZ3 v = mulByZRec 3 v := rfl
 theorem mulByZ4_eq_rec (v : UInt64) : mulByZ4 v = mulByZRec 4 v := rfl
 theorem mulByZ5_eq_rec (v : UInt64) : mulByZ5 v = mulByZRec 5 v := rfl
 
-theorem mulByZ6_eq_rec (v : UInt64) : mulByZ6 v = mulByZRec 6 v := by
-  conv_rhs => rw [mulByZRec_succ]
-  simp only [← mulByZ5_eq_rec]
-  rfl
+theorem mulByZ6_eq_rec (v : UInt64) : mulByZ6 v = mulByZRec 6 v := rfl
 
-private theorem xor_xor_cancel (x y z : UInt64) : x ^^^ (y ^^^ z) ^^^ z = x ^^^ y :=
-  UInt64.toNat_inj.mp (by
-    simp only [UInt64.toNat_xor]
-    rw [Nat.xor_assoc, Nat.xor_assoc, Nat.xor_self, Nat.xor_zero])
-
-theorem mul2_eq_rec (a b : UInt64) : mul2 a b = mulRec 1 a b := by
-  simp only [mul2, mulRec, mulByZRec]
-  rw [xor_xor_cancel]
-  rfl
-
-theorem mul4_eq_rec (a b : UInt64) : mul4 a b = mulRec 2 a b := by
-  conv_rhs => rw [mulRec_succ]
-  simp only [← mul2_eq_rec, ← mulByZ1_eq_rec]
-  rfl
-
+theorem mul2_eq_rec (a b : UInt64) : mul2 a b = mulRec 1 a b := rfl
+theorem mul4_eq_rec (a b : UInt64) : mul4 a b = mulRec 2 a b := rfl
 theorem mul8_eq_rec (a b : UInt64) : mul8 a b = mulRec 3 a b := by
-  conv_rhs => rw [mulRec_succ]
+  rw [mulRec_succ]
   simp only [← mul4_eq_rec, ← mulByZ2_eq_rec]
   rfl
 
 theorem mul16_eq_rec (a b : UInt64) : mul16 a b = mulRec 4 a b := by
-  conv_rhs => rw [mulRec_succ]
+  rw [mulRec_succ]
   simp only [← mul8_eq_rec, ← mulByZ3_eq_rec]
   rfl
 
 theorem mul32_eq_rec (a b : UInt64) : mul32 a b = mulRec 5 a b := by
-  conv_rhs => rw [mulRec_succ]
+  rw [mulRec_succ]
   simp only [← mul16_eq_rec, ← mulByZ4_eq_rec]
   rfl
 
 theorem mul64_eq_rec (a b : UInt64) : mul64 a b = mulRec 6 a b := by
-  conv_rhs => rw [mulRec_succ]
+  rw [mulRec_succ]
   simp only [← mul32_eq_rec, ← mulByZ5_eq_rec]
   rfl
 
 theorem sq2_eq_rec (v : UInt64) : sq2 v = sqRec 1 v := rfl
-
-theorem sq4_eq_rec (v : UInt64) : sq4 v = sqRec 2 v := by
-  conv_rhs => rw [sqRec_succ]
-  simp only [← sq2_eq_rec, ← mulByZ1_eq_rec]
-  rfl
-
+theorem sq4_eq_rec (v : UInt64) : sq4 v = sqRec 2 v := rfl
 theorem sq8_eq_rec (v : UInt64) : sq8 v = sqRec 3 v := by
-  conv_rhs => rw [sqRec_succ]
+  rw [sqRec_succ]
   simp only [← sq4_eq_rec, ← mulByZ2_eq_rec]
   rfl
 
 theorem sq16_eq_rec (v : UInt64) : sq16 v = sqRec 4 v := by
-  conv_rhs => rw [sqRec_succ]
+  rw [sqRec_succ]
   simp only [← sq8_eq_rec, ← mulByZ3_eq_rec]
   rfl
 
 theorem sq32_eq_rec (v : UInt64) : sq32 v = sqRec 5 v := by
-  conv_rhs => rw [sqRec_succ]
+  rw [sqRec_succ]
   simp only [← sq16_eq_rec, ← mulByZ4_eq_rec]
   rfl
 
 theorem sq64_eq_rec (v : UInt64) : sq64 v = sqRec 6 v := by
-  conv_rhs => rw [sqRec_succ]
+  rw [sqRec_succ]
   simp only [← sq32_eq_rec, ← mulByZ5_eq_rec]
   rfl
 
 theorem inv2_eq_rec (v : UInt64) : inv2 v = invRec 1 v := rfl
-
-theorem inv4_eq_rec (v : UInt64) : inv4 v = invRec 2 v := by
-  conv_rhs => rw [invRec_succ]
-  simp only [← mul2_eq_rec, ← sq2_eq_rec, ← mulByZ1_eq_rec, ← inv2_eq_rec]
-  rfl
-
+theorem inv4_eq_rec (v : UInt64) : inv4 v = invRec 2 v := rfl
 theorem inv8_eq_rec (v : UInt64) : inv8 v = invRec 3 v := by
-  conv_rhs => rw [invRec_succ]
+  rw [invRec_succ]
   simp only [← mul4_eq_rec, ← sq4_eq_rec, ← mulByZ2_eq_rec, ← inv4_eq_rec]
   rfl
 
 theorem inv16_eq_rec (v : UInt64) : inv16 v = invRec 4 v := by
-  conv_rhs => rw [invRec_succ]
+  rw [invRec_succ]
   simp only [← mul8_eq_rec, ← sq8_eq_rec, ← mulByZ3_eq_rec, ← inv8_eq_rec]
   rfl
 
 theorem inv32_eq_rec (v : UInt64) : inv32 v = invRec 5 v := by
-  conv_rhs => rw [invRec_succ]
+  rw [invRec_succ]
   simp only [← mul16_eq_rec, ← sq16_eq_rec, ← mulByZ4_eq_rec, ← inv16_eq_rec]
   rfl
 
 theorem inv64_eq_rec (v : UInt64) : inv64 v = invRec 6 v := by
-  conv_rhs => rw [invRec_succ]
+  rw [invRec_succ]
   simp only [← mul32_eq_rec, ← sq32_eq_rec, ← mulByZ5_eq_rec, ← inv32_eq_rec]
   rfl
 
 theorem mul8_lt {a b : UInt64} (ha : a.toNat < 2 ^ 8) (hb : b.toNat < 2 ^ 8) :
-    (mul8 a b).toNat < 2 ^ 8 := by
-  rw [mul8_eq_rec]; exact mulRec_lt 3 (by omega) a b ha hb
+    (mul8 a b).toNat < 2 ^ 8 :=
+  mul8_eq_rec a b ▸ mulRec_lt 3 (by omega) a b ha hb
 
 theorem mul16_lt {a b : UInt64} (ha : a.toNat < 2 ^ 16) (hb : b.toNat < 2 ^ 16) :
-    (mul16 a b).toNat < 2 ^ 16 := by
-  rw [mul16_eq_rec]; exact mulRec_lt 4 (by omega) a b ha hb
+    (mul16 a b).toNat < 2 ^ 16 :=
+  mul16_eq_rec a b ▸ mulRec_lt 4 (by omega) a b ha hb
 
 theorem mul32_lt {a b : UInt64} (ha : a.toNat < 2 ^ 32) (hb : b.toNat < 2 ^ 32) :
-    (mul32 a b).toNat < 2 ^ 32 := by
-  rw [mul32_eq_rec]; exact mulRec_lt 5 (by omega) a b ha hb
+    (mul32 a b).toNat < 2 ^ 32 :=
+  mul32_eq_rec a b ▸ mulRec_lt 5 (by omega) a b ha hb
 
-theorem mulByZ3_lt {v : UInt64} (hv : v.toNat < 2 ^ 8) : (mulByZ3 v).toNat < 2 ^ 8 := by
-  rw [mulByZ3_eq_rec]; exact mulByZRec_lt 3 (by omega) v hv
+theorem mulByZ3_lt {v : UInt64} (hv : v.toNat < 2 ^ 8) : (mulByZ3 v).toNat < 2 ^ 8 :=
+  mulByZ3_eq_rec v ▸ mulByZRec_lt 3 (by omega) v hv
 
-theorem mulByZ4_lt {v : UInt64} (hv : v.toNat < 2 ^ 16) : (mulByZ4 v).toNat < 2 ^ 16 := by
-  rw [mulByZ4_eq_rec]; exact mulByZRec_lt 4 (by omega) v hv
+theorem mulByZ4_lt {v : UInt64} (hv : v.toNat < 2 ^ 16) : (mulByZ4 v).toNat < 2 ^ 16 :=
+  mulByZ4_eq_rec v ▸ mulByZRec_lt 4 (by omega) v hv
 
-theorem mulByZ5_lt {v : UInt64} (hv : v.toNat < 2 ^ 32) : (mulByZ5 v).toNat < 2 ^ 32 := by
-  rw [mulByZ5_eq_rec]; exact mulByZRec_lt 5 (by omega) v hv
+theorem mulByZ5_lt {v : UInt64} (hv : v.toNat < 2 ^ 32) : (mulByZ5 v).toNat < 2 ^ 32 :=
+  mulByZ5_eq_rec v ▸ mulByZRec_lt 5 (by omega) v hv
 
-theorem sq8_lt {v : UInt64} (hv : v.toNat < 2 ^ 8) : (sq8 v).toNat < 2 ^ 8 := by
-  rw [sq8_eq_rec]; exact sqRec_lt 3 (by omega) v hv
+theorem sq8_lt {v : UInt64} (hv : v.toNat < 2 ^ 8) : (sq8 v).toNat < 2 ^ 8 :=
+  sq8_eq_rec v ▸ sqRec_lt 3 (by omega) v hv
 
-theorem sq16_lt {v : UInt64} (hv : v.toNat < 2 ^ 16) : (sq16 v).toNat < 2 ^ 16 := by
-  rw [sq16_eq_rec]; exact sqRec_lt 4 (by omega) v hv
+theorem sq16_lt {v : UInt64} (hv : v.toNat < 2 ^ 16) : (sq16 v).toNat < 2 ^ 16 :=
+  sq16_eq_rec v ▸ sqRec_lt 4 (by omega) v hv
 
-theorem sq32_lt {v : UInt64} (hv : v.toNat < 2 ^ 32) : (sq32 v).toNat < 2 ^ 32 := by
-  rw [sq32_eq_rec]; exact sqRec_lt 5 (by omega) v hv
+theorem sq32_lt {v : UInt64} (hv : v.toNat < 2 ^ 32) : (sq32 v).toNat < 2 ^ 32 :=
+  sq32_eq_rec v ▸ sqRec_lt 5 (by omega) v hv
 
-theorem inv8_lt {v : UInt64} (hv : v.toNat < 2 ^ 8) : (inv8 v).toNat < 2 ^ 8 := by
-  rw [inv8_eq_rec]; exact invRec_lt 3 (by omega) v hv
+theorem inv8_lt {v : UInt64} (hv : v.toNat < 2 ^ 8) : (inv8 v).toNat < 2 ^ 8 :=
+  inv8_eq_rec v ▸ invRec_lt 3 (by omega) v hv
 
-theorem inv16_lt {v : UInt64} (hv : v.toNat < 2 ^ 16) : (inv16 v).toNat < 2 ^ 16 := by
-  rw [inv16_eq_rec]; exact invRec_lt 4 (by omega) v hv
+theorem inv16_lt {v : UInt64} (hv : v.toNat < 2 ^ 16) : (inv16 v).toNat < 2 ^ 16 :=
+  inv16_eq_rec v ▸ invRec_lt 4 (by omega) v hv
 
-theorem inv32_lt {v : UInt64} (hv : v.toNat < 2 ^ 32) : (inv32 v).toNat < 2 ^ 32 := by
-  rw [inv32_eq_rec]; exact invRec_lt 5 (by omega) v hv
+theorem inv32_lt {v : UInt64} (hv : v.toNat < 2 ^ 32) : (inv32 v).toNat < 2 ^ 32 :=
+  inv32_eq_rec v ▸ invRec_lt 5 (by omega) v hv
 
 /-! ## Correctness against the spec
 
@@ -1036,28 +1014,24 @@ instance : Mul BT64 := ⟨BT64.mul⟩
 @[simp] theorem val_mul_bt64 (a b : BT64) : (a * b).val = mul64 a.val b.val := rfl
 
 @[simp] theorem toConcrete_mul_bt8 (a b : BT8) :
-    toConcrete (a * b) = toConcrete a * toConcrete b := by
-  show fromNat (mul8 a.val b.val).toNat = _
-  rw [mul8_eq_rec]
-  exact mulRec_correct 3 (by omega) a.val b.val a.isLt b.isLt
+    toConcrete (a * b) = toConcrete a * toConcrete b :=
+  show fromNat (mul8 a.val b.val).toNat = _ from
+    mul8_eq_rec a.val b.val ▸ mulRec_correct 3 (by omega) a.val b.val a.isLt b.isLt
 
 @[simp] theorem toConcrete_mul_bt16 (a b : BT16) :
-    toConcrete (a * b) = toConcrete a * toConcrete b := by
-  show fromNat (mul16 a.val b.val).toNat = _
-  rw [mul16_eq_rec]
-  exact mulRec_correct 4 (by omega) a.val b.val a.isLt b.isLt
+    toConcrete (a * b) = toConcrete a * toConcrete b :=
+  show fromNat (mul16 a.val b.val).toNat = _ from
+    mul16_eq_rec a.val b.val ▸ mulRec_correct 4 (by omega) a.val b.val a.isLt b.isLt
 
 @[simp] theorem toConcrete_mul_bt32 (a b : BT32) :
-    toConcrete (a * b) = toConcrete a * toConcrete b := by
-  show fromNat (mul32 a.val b.val).toNat = _
-  rw [mul32_eq_rec]
-  exact mulRec_correct 5 (by omega) a.val b.val a.isLt b.isLt
+    toConcrete (a * b) = toConcrete a * toConcrete b :=
+  show fromNat (mul32 a.val b.val).toNat = _ from
+    mul32_eq_rec a.val b.val ▸ mulRec_correct 5 (by omega) a.val b.val a.isLt b.isLt
 
 @[simp] theorem toConcrete_mul_bt64 (a b : BT64) :
-    toConcrete (a * b) = toConcrete a * toConcrete b := by
-  show fromNat (mul64 a.val b.val).toNat = _
-  rw [mul64_eq_rec]
-  exact mulRec_correct 6 (by omega) a.val b.val a.isLt b.isLt
+    toConcrete (a * b) = toConcrete a * toConcrete b :=
+  show fromNat (mul64 a.val b.val).toNat = _ from
+    mul64_eq_rec a.val b.val ▸ mulRec_correct 6 (by omega) a.val b.val a.isLt b.isLt
 
 instance : Inv BT8 := ⟨fun a => .mk (inv8 a.val) (inv8_lt a.isLt)⟩
 instance : Inv BT16 := ⟨fun a => .mk (inv16 a.val) (inv16_lt a.isLt)⟩
@@ -1069,25 +1043,21 @@ instance : Inv BT64 := ⟨fun a => .mk (inv64 a.val) (UInt64.toNat_lt _)⟩
 @[simp] theorem val_inv_bt32 (a : BT32) : (a⁻¹).val = inv32 a.val := rfl
 @[simp] theorem val_inv_bt64 (a : BT64) : (a⁻¹).val = inv64 a.val := rfl
 
-@[simp] theorem toConcrete_inv_bt8 (a : BT8) : toConcrete a⁻¹ = (toConcrete a)⁻¹ := by
-  show fromNat (inv8 a.val).toNat = _
-  rw [inv8_eq_rec]
-  exact invRec_correct 3 (by omega) a.val a.isLt
+@[simp] theorem toConcrete_inv_bt8 (a : BT8) : toConcrete a⁻¹ = (toConcrete a)⁻¹ :=
+  show fromNat (inv8 a.val).toNat = _ from
+    inv8_eq_rec a.val ▸ invRec_correct 3 (by omega) a.val a.isLt
 
-@[simp] theorem toConcrete_inv_bt16 (a : BT16) : toConcrete a⁻¹ = (toConcrete a)⁻¹ := by
-  show fromNat (inv16 a.val).toNat = _
-  rw [inv16_eq_rec]
-  exact invRec_correct 4 (by omega) a.val a.isLt
+@[simp] theorem toConcrete_inv_bt16 (a : BT16) : toConcrete a⁻¹ = (toConcrete a)⁻¹ :=
+  show fromNat (inv16 a.val).toNat = _ from
+    inv16_eq_rec a.val ▸ invRec_correct 4 (by omega) a.val a.isLt
 
-@[simp] theorem toConcrete_inv_bt32 (a : BT32) : toConcrete a⁻¹ = (toConcrete a)⁻¹ := by
-  show fromNat (inv32 a.val).toNat = _
-  rw [inv32_eq_rec]
-  exact invRec_correct 5 (by omega) a.val a.isLt
+@[simp] theorem toConcrete_inv_bt32 (a : BT32) : toConcrete a⁻¹ = (toConcrete a)⁻¹ :=
+  show fromNat (inv32 a.val).toNat = _ from
+    inv32_eq_rec a.val ▸ invRec_correct 5 (by omega) a.val a.isLt
 
-@[simp] theorem toConcrete_inv_bt64 (a : BT64) : toConcrete a⁻¹ = (toConcrete a)⁻¹ := by
-  show fromNat (inv64 a.val).toNat = _
-  rw [inv64_eq_rec]
-  exact invRec_correct 6 (by omega) a.val a.isLt
+@[simp] theorem toConcrete_inv_bt64 (a : BT64) : toConcrete a⁻¹ = (toConcrete a)⁻¹ :=
+  show fromNat (inv64 a.val).toNat = _ from
+    inv64_eq_rec a.val ▸ invRec_correct 6 (by omega) a.val a.isLt
 
 private theorem toConcrete_npowRec {k : ℕ} [Mul (FastBT k)]
     (hmul : ∀ a b : FastBT k, toConcrete (a * b) = toConcrete a * toConcrete b)
@@ -1145,8 +1115,8 @@ def ringEquivBT64 : BT64 ≃+* ConcreteBTField 6 := ringEquivOfHom (by omega) to
 @[inline] def FastBT.mulByZ {k : ℕ} (a : FastBT k) (_hk : k ≤ 6 := by omega) : FastBT k :=
   match k, a with
   | 0, a => a
-  | 1, a => .mk (mulByZ1 a.val) (by rw [mulByZ1_eq_rec]; exact mulByZRec_lt 1 (by omega) _ a.isLt)
-  | 2, a => .mk (mulByZ2 a.val) (by rw [mulByZ2_eq_rec]; exact mulByZRec_lt 2 (by omega) _ a.isLt)
+  | 1, a => .mk (mulByZ1 a.val) (mulByZ1_eq_rec a.val ▸ mulByZRec_lt 1 (by omega) _ a.isLt)
+  | 2, a => .mk (mulByZ2 a.val) (mulByZ2_eq_rec a.val ▸ mulByZRec_lt 2 (by omega) _ a.isLt)
   | 3, a => .mk (mulByZ3 a.val) (mulByZ3_lt a.isLt)
   | 4, a => .mk (mulByZ4 a.val) (mulByZ4_lt a.isLt)
   | 5, a => .mk (mulByZ5 a.val) (mulByZ5_lt a.isLt)
@@ -1174,8 +1144,8 @@ theorem toConcrete_mulByZ {k : ℕ} (a : FastBT k) (hk : k ≤ 6) :
 @[inline] def FastBT.square {k : ℕ} (a : FastBT k) (_hk : k ≤ 6 := by omega) : FastBT k :=
   match k, a with
   | 0, a => a
-  | 1, a => .mk (sq2 a.val) (by rw [sq2_eq_rec]; exact sqRec_lt 1 (by omega) _ a.isLt)
-  | 2, a => .mk (sq4 a.val) (by rw [sq4_eq_rec]; exact sqRec_lt 2 (by omega) _ a.isLt)
+  | 1, a => .mk (sq2 a.val) (sq2_eq_rec a.val ▸ sqRec_lt 1 (by omega) _ a.isLt)
+  | 2, a => .mk (sq4 a.val) (sq4_eq_rec a.val ▸ sqRec_lt 2 (by omega) _ a.isLt)
   | 3, a => .mk (sq8 a.val) (sq8_lt a.isLt)
   | 4, a => .mk (sq16 a.val) (sq16_lt a.isLt)
   | 5, a => .mk (sq32 a.val) (sq32_lt a.isLt)
@@ -1219,24 +1189,20 @@ private theorem join_add_join {k : ℕ} (a b c d : ConcreteBTField k) :
 /-! Width-64 spec forms of the word operations; every `UInt64` is in range at level 6. -/
 
 private theorem fromNat_mul64 (a b : UInt64) :
-    fromNat (k := 6) (mul64 a b).toNat = concrete_mul (fromNat a.toNat) (fromNat b.toNat) := by
-  rw [mul64_eq_rec]
-  exact mulRec_correct 6 le_rfl a b (UInt64.toNat_lt a) (UInt64.toNat_lt b)
+    fromNat (k := 6) (mul64 a b).toNat = concrete_mul (fromNat a.toNat) (fromNat b.toNat) :=
+  mul64_eq_rec a b ▸ mulRec_correct 6 le_rfl a b (UInt64.toNat_lt a) (UInt64.toNat_lt b)
 
 private theorem fromNat_sq64 (v : UInt64) :
-    fromNat (k := 6) (sq64 v).toNat = concrete_mul (fromNat v.toNat) (fromNat v.toNat) := by
-  rw [sq64_eq_rec]
-  exact sqRec_correct 6 le_rfl v (UInt64.toNat_lt v)
+    fromNat (k := 6) (sq64 v).toNat = concrete_mul (fromNat v.toNat) (fromNat v.toNat) :=
+  sq64_eq_rec v ▸ sqRec_correct 6 le_rfl v (UInt64.toNat_lt v)
 
 private theorem fromNat_mulByZ6 (v : UInt64) :
-    fromNat (k := 6) (mulByZ6 v).toNat = concrete_mul (fromNat v.toNat) (Z 6) := by
-  rw [mulByZ6_eq_rec]
-  exact mulByZRec_correct 6 le_rfl v (UInt64.toNat_lt v)
+    fromNat (k := 6) (mulByZ6 v).toNat = concrete_mul (fromNat v.toNat) (Z 6) :=
+  mulByZ6_eq_rec v ▸ mulByZRec_correct 6 le_rfl v (UInt64.toNat_lt v)
 
 private theorem fromNat_inv64 (v : UInt64) :
-    fromNat (k := 6) (inv64 v).toNat = concrete_inv (fromNat v.toNat) := by
-  rw [inv64_eq_rec]
-  exact invRec_correct 6 le_rfl v (UInt64.toNat_lt v)
+    fromNat (k := 6) (inv64 v).toNat = concrete_inv (fromNat v.toNat) :=
+  inv64_eq_rec v ▸ invRec_correct 6 le_rfl v (UInt64.toNat_lt v)
 
 namespace FastBT128
 

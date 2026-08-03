@@ -9,14 +9,12 @@ import CompPoly.Fields.Binary.Tower.FastExt
 /-!
 # Extern-Backed Binary Tower Tests
 
-Runtime regression checks for `ConcreteBinaryTower.Fast.Ext`: the extern-backed
-operations are compared against the verified ladder on basis pairs, boundary values,
-and a deterministic pseudorandom sweep, followed by latency measurements. The Lean
-models are already proved equal to the verified operations; what these checks exercise
-is the trusted C in `native/comppoly_bt.c`, which proofs cannot see. The inverse
-candidates are compared directly because the checked wrappers cannot detect a broken
-candidate: a miss silently takes the fallback. They live in an executable because the
-module interpreter cannot call project-local externs.
+Runtime checks for `ConcreteBinaryTower.Fast.Ext`: the extern-backed operations are
+compared against the verified ladder on basis pairs, boundary values, and a
+pseudorandom sweep, followed by latency measurements. Inverse candidates are compared
+raw, since a broken candidate would silently take the checked wrappers' fallback. The
+checks live in an executable because the module interpreter cannot call project-local
+externs.
 
 Run this file with: `lake exe CompPolyBTExtTests`
 -/

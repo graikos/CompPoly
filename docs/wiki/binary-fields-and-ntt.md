@@ -93,11 +93,10 @@ support lemmas:
   `sqRec_correct`, `invRec_correct`) and transported along `toConcrete`; level 7 is one
   application of the level-6 results. Bundled `RingEquiv`s (`ringEquivBT*`,
   `FastBT128.ringEquiv`) expose the bridge in both directions.
-- `Tower/FastExt.lean` - opt-in extern-backed kernels over `native/comppoly_bt.c`, a
-  GF(2^8) table base built at load from a transcription of the ladder with Karatsuba
-  recombination above it. Each `@[extern]` declaration carries the verified ladder as
-  its body; inverse results are candidates checked at their use site with a proven
-  fallback, and runtime agreement of the kernels is enforced by
+- `Tower/FastExt.lean` - opt-in extern kernels over `native/comppoly_bt.c`, a GF(2^8)
+  table base built at load from a transcription of the ladder, with Karatsuba above
+  it. The `@[extern]` declarations carry the verified ladder as their bodies; inverses
+  are checked candidates with a proven fallback; agreement is enforced by
   `lake exe CompPolyBTExtTests`.
 - `Tower/Equiv.lean`, `Tower/Impl.lean`, and `Tower/TensorAlgebra.lean` connect the
   layers and expose useful transport lemmas.
