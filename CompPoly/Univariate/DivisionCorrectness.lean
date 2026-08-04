@@ -3,19 +3,23 @@ Copyright (c) 2026 CompPoly. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Valerii Huhnin, Juan Conejero
 -/
-import Mathlib.Algebra.Polynomial.Div
-import Mathlib.Algebra.Polynomial.FieldDivision
-import Mathlib.Algebra.Polynomial.Reverse
-import Mathlib.Tactic.Ring
-import CompPoly.Univariate.ToPoly.Impl
-import CompPoly.Univariate.ToPoly.Degree
-import CompPoly.ToMathlib.Polynomial.Div
+module
+
+public import Mathlib.Algebra.Polynomial.Div
+public import Mathlib.Algebra.Polynomial.FieldDivision
+public import Mathlib.Algebra.Polynomial.Reverse
+public import Mathlib.Tactic.Ring
+public import CompPoly.Univariate.ToPoly.Impl
+public import CompPoly.Univariate.ToPoly.Degree
+public import CompPoly.ToMathlib.Polynomial.Div
 
 /-!
 # Univariate Division Correctness
 
 Correctness theorems for division-style univariate polynomial algorithms.
 -/
+
+@[expose] public section
 
 namespace CompPoly
 namespace CPolynomial
@@ -435,24 +439,25 @@ private theorem raw_divModByMonicAux_go_spec (q : Raw R)
         · rw [Raw.toPoly_zero]
           ring
         · exact raw_toPoly_degree_lt_of_size_lt p q hsize hqdegree
-      · simp [hsize]
-        let step := (p - Raw.C p.leadingCoeff * (q * Raw.X ^ (p.size - q.size))).trim
+      · simp only [hsize, ↓reduceIte]
+        -- Match `divModByMonicAux.go` exactly (`X.pow`) so `step` is definitionally
+        -- the recursive remainder; avoid expensive `change`/`whnf` on huge terms.
+        set k := p.size - q.size
+        set step := (p - Raw.C p.leadingCoeff * (q * Raw.X.pow k)).trim
+        have hstep_as_pow :
+            step = (p - Raw.C p.leadingCoeff * (q * Raw.X ^ k)).trim := by
+          simp only [step, HPow.hPow, Pow.pow]
         have hstep_size : step.size < p.size := by
-          exact div_step_size_lt p q hptrim hqtrim hqmonic hsize hqpos
-        have hstep_trim : step.trim = step := by
-          exact Trim.trim_twice _
+          simpa [hstep_as_pow, k] using
+            div_step_size_lt p q hptrim hqtrim hqmonic hsize hqpos
+        have hstep_trim : step.trim = step := Trim.trim_twice _
         have hstep_fuel : step.size ≤ fuel := by omega
-        have ihstep := ih step hstep_trim hstep_fuel
-        rcases ihstep with ⟨hrel, hdeg⟩
+        obtain ⟨hrel, hdeg⟩ := ih step hstep_trim hstep_fuel
         constructor
-        · change
-            (Raw.divModByMonicAux.go fuel step q).2.toPoly +
-                q.toPoly *
-                  ((Raw.divModByMonicAux.go fuel step q).1 +
-                    Raw.C p.leadingCoeff * Raw.X ^ (p.size - q.size)).toPoly =
-              p.toPoly
+        · -- Remainder/quotient relation from the IH, then unwind one division step.
           rw [Raw.toPoly_add, _root_.mul_add, ← _root_.add_assoc, hrel]
-          dsimp only [step]
+          rw [hstep_as_pow]
+          simp only [k]
           rw [Raw.toPoly_trim, Raw.toPoly_sub, Raw.toPoly_mul, Raw.toPoly_C,
             Raw.toPoly_mul, Raw.toPoly_pow, Raw.toPoly_X]
           rw [Raw.toPoly_mul, Raw.toPoly_C, Raw.toPoly_pow, Raw.toPoly_X]

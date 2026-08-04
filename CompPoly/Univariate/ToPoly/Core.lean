@@ -3,19 +3,23 @@ Copyright (c) 2025 CompPoly. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao, Gregor Mitscha-Baude, Derek Sorensen
 -/
-import Mathlib.Algebra.Polynomial.Inductions
-import Mathlib.Algebra.Ring.TransferInstance
-import Mathlib.Algebra.Tropical.Basic
-import Mathlib.RingTheory.Polynomial.Basic
-import CompPoly.Data.Array.Lemmas
-import CompPoly.Univariate.Basic
-import CompPoly.Univariate.Linear
+module
+
+public import Mathlib.Algebra.Polynomial.Inductions
+public import Mathlib.Algebra.Ring.TransferInstance
+public import Mathlib.Algebra.Tropical.Basic
+public import Mathlib.RingTheory.Polynomial.Basic
+public import CompPoly.Data.Array.Lemmas
+public import CompPoly.Univariate.Basic
+public import CompPoly.Univariate.Linear
 
 /-!
 # Computable Univariate To `Polynomial`
 
 Conversions between computable univariate polynomials and mathlib `Polynomial`.
 -/
+
+@[expose] public section
 
 open Polynomial
 
@@ -43,13 +47,13 @@ noncomputable def Raw.toPoly [Semiring R] (p : CPolynomial.Raw R) : Polynomial R
 
 /-- Alternative definition of `toPoly` using `Finsupp`; currently unused. -/
 noncomputable def Raw.toPoly' [Semiring R] (p : CPolynomial.Raw R) : Polynomial R :=
-  Polynomial.ofFinsupp (Finsupp.onFinset (Finset.range p.size) p.coeff (by
+  Polynomial.ofFinsupp (AddMonoidAlgebra.ofCoeff (Finsupp.onFinset (Finset.range p.size) p.coeff (by
     intro n hn
     rw [Finset.mem_range]
     by_contra! h
     have h' : p.coeff n = 0 := by simp [h]
     contradiction
-  ))
+  )))
 
 /-- Convert a canonical polynomial to a (mathlib) `Polynomial`. -/
 noncomputable def toPoly [Semiring R] (p : CPolynomial R) : Polynomial R := p.val.toPoly

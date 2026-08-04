@@ -3,9 +3,10 @@ Copyright (c) 2024 ArkLib Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao, Georgios Raikos
 -/
+module
 
-import CompPoly.Fields.BN254.Basic
-import CompPoly.Fields.BN254.Fast
+public import CompPoly.Fields.BN254.Basic
+public import CompPoly.Fields.BN254.Fast
 
 /-!
 # BN254 Scalar Field

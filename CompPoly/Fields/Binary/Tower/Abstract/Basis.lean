@@ -3,15 +3,18 @@ Copyright (c) 2024-2025 ArkLib Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao, Chung Thai Nguyen
 -/
+module
 
-import CompPoly.Fields.Binary.Tower.Abstract.Split
-import Mathlib.Algebra.Ring.Ext
+public import CompPoly.Fields.Binary.Tower.Abstract.Split
+public import Mathlib.Algebra.Ring.Ext
 
 /-!
 # Abstract Binary Tower Basis
 
 Basis constructions and index-casting lemmas for abstract binary tower extensions.
 -/
+
+@[expose] public section
 
 namespace BinaryTower
 
@@ -51,6 +54,8 @@ def hli_level_diff_0 (l : ℕ) :
     rw [Ideal.submodule_span_eq]
     rw [Ideal.span_singleton_one]
 
+set_option linter.defProp false in
+/-- Reducible Prop-valued helper for `letI` scalar-tower instances. -/
 @[reducible] def BTField.isScalarTower_succ_right (l r : ℕ) (h_le : l ≤ r) :=
   instAlgebraTowerNatBTField.toIsScalarTower (i:=l) (j:=r) (k:=r+1)
   (h1:=by omega) (h2:=by omega)

@@ -3,18 +3,21 @@ Copyright (c) 2026 CompPoly Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Valerii Huhnin, Georgios Raikos
 -/
+module
 
-import CompPoly.Fields.Basic
-import CompPoly.Fields.Montgomery.Native32
-import Mathlib.Algebra.Field.TransferInstance
-import Mathlib.FieldTheory.Finite.Basic
-import Mathlib.Tactic.Linarith
+public import CompPoly.Fields.Basic
+public import CompPoly.Fields.Montgomery.Native32
+public import Mathlib.Algebra.Field.TransferInstance
+public import Mathlib.FieldTheory.Finite.Basic
+public import Mathlib.Tactic.Linarith
 
 /-!
 # Fast 32-bit Montgomery Fields
 
 The bounded carrier, conversions, arithmetic, and field instances built on `Native32` reduction.
 -/
+
+@[expose] public section
 
 namespace Montgomery
 namespace Native32
@@ -112,8 +115,12 @@ def ofCanonicalNat (n : ℕ) (h : n < modulus) : FastField modulus :=
     simp only [UInt64.toNat_mul, UInt64.toNat_ofNat', P.r2ModModulus_toNat,
       Nat.mod_mul_mod]
     apply Nat.mod_lt_of_lt
-    grw [Nat.mod_lt _ P.modulus_pos]
-    apply mul_lt_mul <;> simp [h, le_of_lt]
+    have hr : (2 ^ 32) ^ 2 % modulus < modulus := Nat.mod_lt _ P.modulus_pos
+    have h1 : n * ((2 ^ 32) ^ 2 % modulus) < modulus * modulus :=
+      Nat.mul_lt_mul_of_lt_of_lt h hr
+    have h2 : modulus * modulus < modulus * 2 ^ 32 :=
+      (Nat.mul_lt_mul_left P.modulus_pos).mpr P.modulus_lt_two_pow_32
+    exact lt_trans h1 h2
 
 /-- Convert a natural number into fast Montgomery representation. -/
 @[inline]
@@ -126,8 +133,11 @@ def ofUInt32 (modulus : ℕ) [P : Mont32Field modulus] (x : UInt32) : FastField 
   reduce (x.toUInt64 * P.r2ModModulus) <| by
     simp only [UInt64.toNat_mul, UInt32.toNat_toUInt64, P.r2ModModulus_toNat]
     apply Nat.mod_lt_of_lt
-    grw [Nat.mod_lt _ P.modulus_pos, mul_comm modulus]
-    apply Nat.mul_lt_mul_of_pos_right <;> simp
+    have hr : (2 ^ 32) ^ 2 % modulus < modulus := Nat.mod_lt _ P.modulus_pos
+    have hx : x.toNat < 2 ^ 32 := UInt32.toNat_lt x
+    have h1 : x.toNat * ((2 ^ 32) ^ 2 % modulus) < 2 ^ 32 * modulus :=
+      Nat.mul_lt_mul_of_lt_of_lt hx hr
+    rwa [mul_comm modulus]
 
 /-- Convert from the canonical `ZMod` field into fast Montgomery form. -/
 @[inline]
@@ -136,7 +146,7 @@ def ofField (x : ZMod modulus) : FastField modulus :=
 
 /-- Convert an integer into fast Montgomery representation. -/
 @[inline]
-private def ofInt (modulus : ℕ) [P : Mont32Field modulus] (n : Int) : FastField modulus :=
+def ofInt (modulus : ℕ) [P : Mont32Field modulus] (n : Int) : FastField modulus :=
   ofField (n : ZMod modulus)
 
 /-- Convert a fast element to its canonical native-word representative. -/
@@ -331,8 +341,12 @@ private theorem ofCanonicalNat_val_toNat_cast {n : ℕ} (h : n < modulus) :
   have hb : (UInt64.ofNat n * P.r2ModModulus).toNat < modulus * 2 ^ 32 := by
     simp only [UInt64.toNat_mul, UInt64.toNat_ofNat', P.r2ModModulus_toNat, Nat.mod_mul_mod]
     apply Nat.mod_lt_of_lt
-    grw [Nat.mod_lt _ P.modulus_pos]
-    apply mul_lt_mul <;> simp [h, le_of_lt]
+    have hr : (2 ^ 32) ^ 2 % modulus < modulus := Nat.mod_lt _ P.modulus_pos
+    have h1 : n * ((2 ^ 32) ^ 2 % modulus) < modulus * modulus :=
+      Nat.mul_lt_mul_of_lt_of_lt h hr
+    have h2 : modulus * modulus < modulus * 2 ^ 32 :=
+      (Nat.mul_lt_mul_left P.modulus_pos).mpr P.modulus_lt_two_pow_32
+    exact lt_trans h1 h2
   rw [show ((ofCanonicalNat n h).val.toNat : ZMod modulus)
         = ((UInt64.ofNat n * P.r2ModModulus).toNat : ZMod modulus)
             * ((2 ^ 32 : ℕ) : ZMod modulus)⁻¹ from

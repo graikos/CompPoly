@@ -3,9 +3,11 @@ Copyright (c) 2026 CompPoly. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Juan Conejero, Valerii Huhnin
 -/
-import CompPoly.Univariate.Basic
-import CompPoly.Univariate.DivisionCorrectness
-import CompPoly.ToMathlib.Order.WithBot
+module
+
+public import CompPoly.Univariate.Basic
+public import CompPoly.Univariate.DivisionCorrectness
+public import CompPoly.ToMathlib.Order.WithBot
 
 /-!
 # Extended Euclidean Algorithm for `CPolynomial`
@@ -18,6 +20,8 @@ For positive thresholds, `xgcd_stopSpec` characterizes the output: `BezoutStopSp
 the Bézout identity together with the residue/cofactor degree bounds at the stopping point,
 via the loop invariant `BezoutDegreeInvariant`.
 -/
+
+@[expose] public section
 
 namespace CompPoly
 
@@ -231,7 +235,7 @@ theorem monicNormalize_toPoly_eq_normalize
     rw [CPolynomial.Raw.toPoly_zero, CPolynomial.toPoly_zero, normalize_zero]
   · have hp : p ≠ 0 := by
       intro hp
-      exact hpraw (by subst p; rfl)
+      exact hpraw (by subst p; exact beq_self_eq_true _)
     rw [if_neg hpraw, Raw.toPoly_smul]
     have hlead : CPolynomial.Raw.leadingCoeff p.val = p.leadingCoeff := by
       simp [CPolynomial.Raw.leadingCoeff, CPolynomial.leadingCoeff, CPolynomial.trim_eq]
@@ -361,10 +365,15 @@ theorem normXgcd_fst_comm
   apply toPolyLinearEquiv.injective
   show (normXgcd p q).1.toPoly = (normXgcd q p).1.toPoly
   rw [normXgcd_fst_toPoly, normXgcd_fst_toPoly]
-  open EuclideanDomain in
-  refine normalize_eq_normalize_iff_associated.mpr
-    (associated_of_dvd_dvd ?_ ?_) <;>
-  exact dvd_gcd (gcd_dvd_right ..) (gcd_dvd_left ..)
+  -- `normalize (gcd a b) = normalize (gcd b a)` via mutual divisibility.
+  refine (normalize_eq_normalize_iff_associated).mpr ?_
+  refine associated_of_dvd_dvd ?_ ?_
+  · exact EuclideanDomain.dvd_gcd
+      (EuclideanDomain.gcd_dvd_right p.toPoly q.toPoly)
+      (EuclideanDomain.gcd_dvd_left p.toPoly q.toPoly)
+  · exact EuclideanDomain.dvd_gcd
+      (EuclideanDomain.gcd_dvd_right q.toPoly p.toPoly)
+      (EuclideanDomain.gcd_dvd_left q.toPoly p.toPoly)
 
 end CPolynomial
 

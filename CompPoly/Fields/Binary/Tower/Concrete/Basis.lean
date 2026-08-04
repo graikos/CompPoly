@@ -3,15 +3,18 @@ Copyright (c) 2024 - 2025 ArkLib Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Chung Thai Nguyen, Quang Dao
 -/
+module
 
-import CompPoly.Fields.Binary.Tower.Concrete.Algebra
-import Mathlib.Algebra.Ring.Ext
+public import CompPoly.Fields.Binary.Tower.Concrete.Algebra
+public import Mathlib.Algebra.Ring.Ext
 
 /-!
 # Concrete Binary Tower Basis
 
 Basis constructions for the concrete bitvector binary tower.
 -/
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 namespace ConcreteBinaryTower
@@ -235,7 +238,7 @@ theorem minPoly_of_powerBasisSucc_generator (k : ℕ) :
         let r := q.coeff 0
         have hc : c = q.leadingCoeff := by
           rw [Polynomial.leadingCoeff]
-          exact congrArg q.toFinsupp.2 (id (Eq.symm hqNatDeg))
+          exact congrArg q.toFinsupp.coeff (id (Eq.symm hqNatDeg))
         have hc_ne_zero : c ≠ 0 := by
           rw [hc]
           by_contra h_c_eq_zero
@@ -300,6 +303,8 @@ def hli_level_diff_0 (l : ℕ) :
     rw [Ideal.submodule_span_eq]
     rw [Ideal.span_singleton_one]
 
+set_option linter.defProp false in
+/-- Reducible Prop-valued helper for `letI` scalar-tower instances. -/
 @[reducible] def isScalarTower_succ_right (l r : ℕ) (h_le : l ≤ r) :=
     instAlgebraTowerConcreteBTF.toIsScalarTower (i:=l) (j:=r) (k:=r+1)
     (h1:=by omega) (h2:=by omega)

@@ -3,11 +3,12 @@ Copyright (c) 2024-2025 ArkLib Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Chung Thai Nguyen, Quang Dao
 -/
+module
 
-import CompPoly.Fields.Binary.AdditiveNTT.Algorithm
-import CompPoly.Fields.Binary.AdditiveNTT.Impl
-import Mathlib.Algebra.CharP.CharAndCard
-import Mathlib.Algebra.CharP.Two
+public import CompPoly.Fields.Binary.AdditiveNTT.Algorithm
+public import CompPoly.Fields.Binary.AdditiveNTT.Impl
+public import Mathlib.Algebra.CharP.CharAndCard
+public import Mathlib.Algebra.CharP.Two
 
 /-!
 # Additive NTT Correctness
@@ -15,6 +16,8 @@ import Mathlib.Algebra.CharP.Two
 The stage-wise correctness argument and the final correctness theorem for the
 Additive NTT.
 -/
+
+@[expose] public section
 
 open Polynomial AdditiveNTT Module
 namespace AdditiveNTT
@@ -762,7 +765,7 @@ lemma NTTStage_correctness (i : Fin (ℓ))
       conv_lhs =>
         enter [1]
         simp only [h_j_div_2_pow_left]
-      congr
+      congr 1
       simp only [even_coeffs_poly, cur_coeffs]
       have h_res := evenRefinement_eq_novel_poly_of_0_leading_suffix 𝔽q β h_ℓ_add_R_rate
         ⟨i, by omega⟩ ⟨Nat.getLowBits i.val j.val, by
@@ -848,7 +851,7 @@ lemma NTTStage_correctness (i : Fin (ℓ))
             simp only [h_k, ↓reduceIte]
         rw [h_get_lsb_eq]
         apply Nat.sum_of_and_eq_zero_is_or h_lsb_and_two_pow_eq_zero
-      congr
+      simp only [h_v_eq]
     rw [h_even_split, h_odd_split]
     rw [h_P_i_split_even_odd]
     have h_x0_eq_cur_evaluation_point : x0 = cur_evaluation_point := by

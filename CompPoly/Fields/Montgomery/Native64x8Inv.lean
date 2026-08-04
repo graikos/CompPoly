@@ -3,10 +3,11 @@ Copyright (c) 2026 CompPoly Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Georgios Raikos
 -/
+module
 
-import CompPoly.Fields.Montgomery.Native64x8Field
-import CompPoly.Fields.Montgomery.Native64x8InvDefs
-import Mathlib.Tactic.Ring
+public import CompPoly.Fields.Montgomery.Native64x8Field
+public import CompPoly.Fields.Montgomery.Native64x8InvDefs
+public import Mathlib.Tactic.Ring
 
 /-!
 # Fast inversion for eight-limb Montgomery fields
@@ -15,6 +16,8 @@ Correctness of the checked inversion of `Montgomery/Native64x8InvDefs`: `invGcdR
 computes the field inverse and `FastField.invGcd` is its proof-carrying wrapper.  Also
 proves the divstep coefficient bound and the mac-width safety of the candidate.
 -/
+
+@[expose] public section
 
 namespace Montgomery.Native64x8
 

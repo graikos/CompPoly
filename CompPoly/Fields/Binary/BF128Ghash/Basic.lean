@@ -3,8 +3,9 @@ Copyright (c) 2024-2025 ArkLib Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Chung Thai Nguyen, Quang Dao
 -/
+module
 
-import CompPoly.Fields.Binary.BF128Ghash.XPowTwoPowGcdCertificate
+public import CompPoly.Fields.Binary.BF128Ghash.XPowTwoPowGcdCertificate
 
 /-!
 # BinaryField128Ghash
@@ -40,6 +41,8 @@ Thus, we only need to check:
   SIAM Journal on Computing, 9(2):273-280, 1980. https://doi.org/10.1137/0209024
 
 -/
+
+@[expose] public section
 
 namespace BF128Ghash
 open Polynomial AdjoinRoot
@@ -187,12 +190,15 @@ def root : BF128Ghash := AdjoinRoot.root ghashPoly
 /-- The root satisfies the GHASH polynomial equation:
     root^128 + root^7 + root^2 + root + 1 = 0 -/
 theorem root_satisfies_poly : root^128 + root^7 + root^2 + root + 1 = 0 := by
-  unfold root ghashPoly
-  have h := AdjoinRoot.eval₂_root ghashPoly
-  unfold ghashPoly at h
-  simp only [eval₂_add, eval₂_X, eval₂_one] at h
-  erw [eval₂_pow, eval₂_X, eval₂_pow, eval₂_X, eval₂_pow, eval₂_X] at h
-  exact h
+  calc
+    _ = (AdjoinRoot.mk ghashPoly X)^128 + (AdjoinRoot.mk ghashPoly X)^7 +
+        (AdjoinRoot.mk ghashPoly X)^2 + AdjoinRoot.mk ghashPoly X + 1 := by
+      simp only [root, AdjoinRoot.mk_X]
+    _ = AdjoinRoot.mk ghashPoly (X^128 + X^7 + X^2 + X + 1) := by
+      rw [map_add, map_add, map_add, map_add, map_pow, map_pow, map_pow, map_one]
+    _ = 0 := by
+      change AdjoinRoot.mk ghashPoly ghashPoly = 0
+      exact AdjoinRoot.mk_self
 
 /-- BF128Ghash is a finite type. -/
 instance : Fintype BF128Ghash := by
@@ -204,6 +210,7 @@ instance : Fintype BF128Ghash := by
     exact Finite.of_equiv (Fin pb.dim →₀ ZMod 2) (pb.basis.repr.toEquiv.symm)
   exact Fintype.ofFinite BF128Ghash
 
+set_option maxRecDepth 3000 in
 /-- The cardinality of BF128Ghash is 2^128. -/
 theorem BF128Ghash_card : Fintype.card BF128Ghash = 2^128 := by
   -- Use the fact that AdjoinRoot of an irreducible polynomial of degree d

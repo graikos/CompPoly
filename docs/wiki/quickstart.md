@@ -43,7 +43,6 @@ lake build
 `CompPoly.lean` is generated from tracked `CompPoly/**/*.lean` files. If it changes,
 commit the regenerated file with the source changes.
 
-
 ### Lean style cleanup or new Lean-heavy code
 
 ```bash
@@ -69,12 +68,17 @@ lake build CompPolyBench
 lake exe CompPolyBench --medium
 ```
 
+CI runs a curated subset rather than the full suite, so a new benchmark group must
+be added to `BENCH_CI_GROUPS` in
+[`../../.github/workflows/lean_action_ci.yml`](../../.github/workflows/lean_action_ci.yml)
+to be covered there. See [`../../bench/README.md`](../../bench/README.md).
+
 ## CI Mapping
 
 - [`../../.github/workflows/lean_action_ci.yml`](../../.github/workflows/lean_action_ci.yml)
   runs a clean build, warm rebuild, and `lake test`, then posts a build-timing
-  report. It also runs `CompPolyBench --medium` and uploads benchmark
-  reports as CI artifacts.
+  report. It also builds and runs `CompPolyBench --medium` over the curated
+  `BENCH_CI_GROUPS` selection, then uploads benchmark reports as CI artifacts.
 - [`../../.github/workflows/linting.yml`](../../.github/workflows/linting.yml) runs
   the style linter on changed `.lean` files in PRs and push builds.
 - [`../../.github/workflows/check_imports.yml`](../../.github/workflows/check_imports.yml)

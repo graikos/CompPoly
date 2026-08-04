@@ -3,13 +3,17 @@ Copyright (c) 2026 CompPoly Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Valerii Huhnin
 -/
+module
 
-import CompPolyBench.Common
-import CompPoly.Univariate.NTT.KoalaBear
+public import CompPolyBench.Common
+public import CompPoly.Univariate.NTT.KoalaBear
+public import CompPoly.Univariate.NTT.BabyBear
 
 /-!
 # Shared Univariate Benchmark Helpers
 -/
+
+public section
 
 open CompPoly
 
@@ -105,5 +109,23 @@ def koalaBearFastMulNttDomain : CPolynomial.NTT.Domain KoalaBear.Fast.Field :=
 def koalaBearFastBestDomainForLength? (requiredLen : Nat) :
     Option (CPolynomial.NTT.FittingDomain KoalaBear.Fast.Field requiredLen) :=
   CPolynomial.NTT.KoalaBear.fastBestDomainForLength? requiredLen
+
+/-- NTT domain for direct univariate BabyBear multiplication benchmarks. -/
+def babyBearMulNttDomain : CPolynomial.NTT.Domain BabyBear.Field :=
+  CPolynomial.NTT.BabyBear.domainOfLogN univariateMulLogN (by decide)
+
+/-- BabyBear NTT domain lookup for dynamic multiplication contexts. -/
+def babyBearBestDomainForLength? (requiredLen : Nat) :
+    Option (CPolynomial.NTT.FittingDomain BabyBear.Field requiredLen) :=
+  CPolynomial.NTT.BabyBear.bestDomainForLength? requiredLen
+
+/-- NTT domain for direct univariate fast BabyBear multiplication benchmarks. -/
+def babyBearFastMulNttDomain : CPolynomial.NTT.Domain BabyBear.Fast.Field :=
+  CPolynomial.NTT.BabyBear.fastDomainOfLogN univariateMulLogN (by decide)
+
+/-- Fast BabyBear NTT domain lookup for dynamic multiplication contexts. -/
+def babyBearFastBestDomainForLength? (requiredLen : Nat) :
+    Option (CPolynomial.NTT.FittingDomain BabyBear.Fast.Field requiredLen) :=
+  CPolynomial.NTT.BabyBear.fastBestDomainForLength? requiredLen
 
 end CompPolyBench

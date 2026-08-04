@@ -3,10 +3,11 @@ Copyright (c) 2025 CompPoly. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Derek Sorensen
 -/
+module
 
-import CompPoly.Bivariate.Basic
-import CompPoly.Univariate.ToPoly.Impl
-import Mathlib.Algebra.Polynomial.Bivariate
+public import CompPoly.Bivariate.Basic
+public import CompPoly.Univariate.ToPoly.Impl
+public import Mathlib.Algebra.Polynomial.Bivariate
 
 /-!
 # Equivalence with Mathlib Bivariate Polynomials
@@ -23,6 +24,8 @@ Main results:
 - ring equivalence: `ringEquiv`
 - API correctness lemmas for evaluation, coefficients, support, and degrees
 -/
+
+@[expose] public section
 
 open Polynomial
 open scoped Polynomial.Bivariate
@@ -313,8 +316,6 @@ lemma ofPoly_zero {R : Type*} [BEq R] [LawfulBEq R] [Nontrivial R] [Semiring R] 
     ofPoly (0 : R[X][Y]) = 0 := by
       unfold CBivariate.ofPoly
       simp +decide [ Polynomial.support ]
-      erw [Finsupp.support_zero]
-      exact Finset.sum_empty
 
 /-- Ring hom from computable bivariates to Mathlib bivariates. -/
 noncomputable def toPolyRingHom

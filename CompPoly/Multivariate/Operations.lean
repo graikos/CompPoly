@@ -3,8 +3,10 @@ Copyright (c) 2025 CompPoly. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Frantisek Silvasi, Julian Sutherland, Andrei Burdușa, Derek Sorensen, Dimitris Mitsios
 -/
-import CompPoly.Multivariate.MvPolyEquiv.Eval
-import CompPoly.Multivariate.MvPolyEquiv.Instances
+module
+
+public import CompPoly.Multivariate.MvPolyEquiv.Eval
+public import CompPoly.Multivariate.MvPolyEquiv.Instances
 
 /-!
 # Computable multivariate polynomials (extended operations)
@@ -25,6 +27,8 @@ are in `CMvPolynomial.lean`. The `CommSemiring` and `CommRing` instances are in
 * `aeval`: Algebra evaluation.
 * `bind₁`: Substitution of polynomials for variables.
 -/
+
+@[expose] public section
 namespace CPoly
 
 open Std
@@ -413,8 +417,8 @@ lemma foldl_add_comm {β : Type*} [AddCommMonoid β] {k : ℕ}
 lemma fromCMvPolynomial_finsupp_sum {n k : ℕ} [CommSemiring R] [BEq R] [LawfulBEq R]
     (g : (Fin n →₀ ℕ) → R → CMvPolynomial k R)
     (a : CMvPolynomial n R) :
-    fromCMvPolynomial (Finsupp.sum (fromCMvPolynomial a) g) =
-    Finsupp.sum (fromCMvPolynomial a)
+    fromCMvPolynomial (Finsupp.sum (AddMonoidAlgebra.coeff (fromCMvPolynomial a)) g) =
+    Finsupp.sum (AddMonoidAlgebra.coeff (fromCMvPolynomial a))
       (fun μ c => fromCMvPolynomial (g μ c)) := by
   unfold Finsupp.sum; ext
   simp [MvPolynomial.coeff_sum, coeff_eq, coeff_sum]

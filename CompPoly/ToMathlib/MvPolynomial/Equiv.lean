@@ -3,15 +3,18 @@ Copyright (c) 2024-2025 ArkLib Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Chung Thai Nguyen, Quang Dao
 -/
+module
 
-import Mathlib.Algebra.MvPolynomial.Equiv
-import CompPoly.ToMathlib.Finsupp.Fin
+public import Mathlib.Algebra.MvPolynomial.Equiv
+public import CompPoly.ToMathlib.Finsupp.Fin
 
 /-!
 # MvPolynomial Equiv
 
 Equivalences for multivariable polynomials, including `finSuccEquivNth`.
 -/
+
+@[expose] public section
 
 namespace MvPolynomial
 
@@ -150,16 +153,13 @@ variable. -/
 theorem support_finSuccEquivNth (f : MvPolynomial (Fin (n + 1)) R) :
     (finSuccEquivNth R p f).support = Finset.image (fun m : Fin (n + 1) →₀ ℕ => m p) f.support := by
   ext i
-  rw [Polynomial.mem_support_iff, Finset.mem_image, Finsupp.ne_iff]
+  simp only [Polynomial.mem_support_iff, ne_eq, MvPolynomial.ext_iff, coeff_zero, not_forall,
+    Finset.mem_image, mem_support_iff, finSuccEquivNth_coeff_coeff]
   constructor
   · rintro ⟨m, hm⟩
-    refine ⟨m.insertNth p i, ?_, insertNth_apply_same _ _ _⟩
-    rw [← support_coeff_finSuccEquivNth]
-    simpa [mem_support_iff, coeff] using hm
+    exact ⟨m.insertNth p i, hm, insertNth_apply_same _ _ _⟩
   · rintro ⟨m, h, rfl⟩
-    refine ⟨m.removeNth p, ?_⟩
-    rwa [← coeff, zero_apply, ← mem_support_iff, support_coeff_finSuccEquivNth,
-      insertNth_self_removeNth]
+    exact ⟨m.removeNth p, by simpa using h⟩
 
 theorem mem_support_finSuccEquivNth {f : MvPolynomial (Fin (n + 1)) R} {x} :
     x ∈ (finSuccEquivNth R p f).support ↔ x ∈ (fun m : Fin (n + 1) →₀ _ ↦ m p) '' f.support := by
